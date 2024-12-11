@@ -1,13 +1,8 @@
-bash ../run_z3_graph_lm_multinodes.sh
-
-TIMESTAMP=$(date '+%Y%m%d%H%M%S')
-
-PROFILE_DIR="/mnt/post-training-ppo/projects/z3n/profile_${TIMESTAMP}"
+PROFILE_DIR="/mnt/projects/osdi/profile_${TIMESTAMP}"
 mkdir -p ${PROFILE_DIR}
 PROFILE_OPTS="--profile --profile-dir ${PROFILE_DIR}"
 COMPILE_OPTS="--compile"
 N3Z_OPTS="--compile --schedule"
-# ACC_OPTS="--gradient-accumulation-steps 1"
 AC_OPTS="--activation-checkpointing"
 
 MODEL="meta-llama/Meta-Llama-3-70B-Instruct"
@@ -19,12 +14,11 @@ for ACC_STEP in ${ACC_OPTS[@]}; do
         for SEQ_LENGTH in ${SEQ_LENGTH_OPTS[@]}; do
             ARGS="--model ${MODEL} --batch-size ${BATCH_SIZE} --seq-length ${SEQ_LENGTH} ${AC_OPTS} ${PROFILE_OPTS} --gradient-accumulation-steps ${ACC_STEP}"
             NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed ${ARGS} ${COMPILE_OPTS}
-
-            # NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed ${ARGS}
-            # NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend fsdp ${ARGS}
-            # NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes prefetch,selective_gather
-            # NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes prefetch
-            # NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes selective_gather
+            NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed ${ARGS}
+            NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend fsdp ${ARGS}
+            NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes prefetch,selective_gather
+            NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes prefetch
+            NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes selective_gather
         done
     done
 done
@@ -39,11 +33,11 @@ for ACC_STEP in ${ACC_OPTS[@]}; do
             ARGS="--model ${MODEL} --batch-size ${BATCH_SIZE} --seq-length ${SEQ_LENGTH} ${AC_OPTS} ${PROFILE_OPTS} --gradient-accumulation-steps ${ACC_STEP}"
             NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed ${ARGS} ${COMPILE_OPTS}
 
-            # NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed ${ARGS}
-            # NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend fsdp ${ARGS}
-            # NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes prefetch,selective_gather
-            # NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes prefetch
-            # NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes selective_gather
+            NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed ${ARGS}
+            NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend fsdp ${ARGS}
+            NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes prefetch,selective_gather
+            NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes prefetch
+            NUM_NODES=4 NGPUS_PER_NODE=8 bash ./run_multinode.sh --backend deepspeed --compile ${ARGS} --passes selective_gather
         done
     done
 done
