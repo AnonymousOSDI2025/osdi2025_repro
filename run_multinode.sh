@@ -1,6 +1,7 @@
 #!/bin/bash
 
-BLOB_BASE_DIR=/mnt/post-training-ppo
+DS_DIR=/scratch/amlt_code/DeepSpeed.osdi
+CODE_DIR=/scratch/amlt_code/osdi2025_repro
 
 NUM_NODES=${NUM_NODES:-$(wc -l < /job/hostfile)}
 NGPUS_PER_NODE=${NGPUS_PER_NODE:-$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)}
@@ -85,8 +86,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 LOCKFILE=/tmp/lockfile
-DS_DIR=/scratch/amlt_code/DeepSpeed
-CODE_DIR=/scratch/amlt_code/run_z3_graph_rewrite/accelerate
 
 echo "NUM_NODES: ${NUM_NODES} NGPUS_PER_NODE: ${NGPUS_PER_NODE} NUM_PROCESSES: ${NUM_PROCESSES}"
 

@@ -27,6 +27,7 @@ def get_args():
     parser.add_argument("--compile", action="store_true")
     parser.add_argument("--schedule", action="store_true")
     parser.add_argument("--passes", type=str, default=None)
+    parser.add_argument("--offload_opt_states", action="store_true")
     parser.add_argument("--profile", action="store_true")
     parser.add_argument("--deterministic", action="store_true")
     parser.add_argument("--profile_dir", type=str, default=None)
@@ -97,14 +98,23 @@ def main():
 
             passes = args.passes.split(",") if args.passes else None
             model.compile(schedule=args.schedule, scheduler="fast_free", 
-                            free_activation=False,
+                            free_activation=True,
                             offload_activation=False,
                             passes=passes,
+                            offload_opt_states=args.offload_opt_states,
                             double_buffer=True)
+    else:
+        if args.compile:
+            model = torch.compile(model)
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     model_name = args.model_name.split("/")[-1]
-    exp_name = f"{model_name}_np{accelerator.num_processes}L{0 if args.num_layers is None else args.num_layers}SEQ{args.seq_length}T{timestamp}"
+    exp_name = f"{model_name}_np{accelerator.num_processes}ds{1 if is_deepspeed else 0}z{args.zero_stage}" \
+               f"L{0 if args.num_layers is None else args.num_layers}" \
+               f"bs{args.batch_size}seq{args.seq_length}acc{args.gradient_accumulation_steps}ac{1 if args.activation_checkpointing else 0}" \
+               f"pass_{'none' if args.passes is None else args.passes.replace(',', '_')}_" \
+               f"os{1 if args.offload_opt_states else 0}" \
+               f"T{timestamp}"
     if args.profile_dir:
         if accelerator.is_main_process and args.profile_dir:
             os.makedirs(args.profile_dir, exist_ok=True)
@@ -125,7 +135,6 @@ def main():
 
     # Training loop
     model.train()
-    total_steps = args.num_epochs * len(data_loader)
     global_step = 0
 
     iter_times = []
@@ -147,10 +156,11 @@ def main():
                     optimizer.zero_grad()
 
                     global_step += 1
-                    if accelerator.is_main_process and global_step % args.print_interval == 0:
-                        print(f"Epoch {epoch+1}, Step {global_step}, Loss: {loss.item()} sync: {accelerator.sync_gradients}")
 
                     if accelerator.sync_gradients:
+                        if accelerator.is_main_process and global_step % (args.print_interval * args.gradient_accumulation_steps) == 0:
+                            print(f"Epoch {epoch+1}, Step {global_step}, Loss: {loss.item()} sync: {accelerator.sync_gradients} time: {time.time() - start_iter} alloc_mem: {torch.cuda.memory_allocated()} peak_mem: {torch.cuda.max_memory_allocated()}")
+
                         iter_times.append(time.time() - start_iter)
                         start_iter = time.time()
 
@@ -164,7 +174,8 @@ def main():
 
     if accelerator.is_main_process:
         compile_time_sum = 0
-        if args.compile:
+        compile_time = 0
+        if args.compile and hasattr(model, "get_compile_time"):
             compile_time = model.get_compile_time()
             compile_time_sum = sum(t for _, _, _, t in compile_time)
 

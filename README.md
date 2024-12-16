@@ -3,7 +3,37 @@
 ## Setup
 
 This experiment scripts require 4 nodes that has 8 A100 GPUs each.
-We need to install a [modified version of DeepSpeed](https://github.com/AnonymousOSDI2025/DeepSpeed/tree/osdi_repro) and other dependencies.
+We tested the scripts with Python 3.10.12 and CUDA 12.3.
+
+### Libraries
+
+In addition, you need to install the following:
+
+- PyTorch 2.5.1
+- [modified version of DeepSpeed](https://github.com/AnonymousOSDI2025/DeepSpeed/tree/osdi_repro)
+
+```bash
+pip3 install torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip3 install transformers datasets accelerate
+
+# Install DeepSpeed
+git clone -b osdi_repro https://github.com/AnonymousOSDI2025/DeepSpeed
+pip install -e DeepSpeed
+
+# Clone this repository
+git clone https://github.com/AnonymousOSDI2025/osdi2025_repro
+```
+
+### Setup for multiple nodes run
+
+You need to set host names in `hostfile_n4`. The file should look like the following:
+
+```
+node-0 slots=8
+node-1 slots=8
+node-2 slots=8
+node-3 slots=8
+```
 
 ## Evaluation on throughput and peak memory (Fig. 6 and 7)
 
@@ -13,9 +43,11 @@ This sweeps the following conditions:
 - Models: meta-llama/Meta-Llama-3-70B-Instruct, mistralai/Mixtral-8x7B-v0.1
 - Batch size: 1, 2, 4
 - Sequence length: 512 1024 2048
-- Frameworks: DeepSpeed, FSDP, DeepCompile (P), DeepCompile (S), DeepCompile (P+S)
+- Frameworks: DeepSpeed, DeepSpeed (C), FSDP, FSDP (C), DeepCompile (P), DeepCompile (S), DeepCompile (P+S)
+
 
 ```bash
+export PROFILE_DIR=/path/to/profile
 bash run_bench.sh
 ```
 

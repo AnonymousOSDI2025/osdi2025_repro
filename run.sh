@@ -9,13 +9,6 @@ shift 7
 EXTRA_OPTS="$@"
 
 export NCCL_DEBUG=WARN
-# export TORCH_COMPILE_DEBUG=1
-
-# make sure BLOB_BASE_DIR is set
-# if [ -z "${BLOB_BASE_DIR}" ]; then
-#     echo "BLOB_BASE_DIR is not set"
-#     exit 1
-# fi
 
 CONFIG_TEMPLATE=configs/ds_config.yaml.template
 if [ "${BACKEND}" == "fsdp" ]; then
@@ -34,7 +27,6 @@ echo "BACKEND: ${BACKEND}"
 echo "ZERO_STAGE: ${ZERO_STAGE}"
 echo "MODEL: ${MODEL}"
 echo "EXTRA_OPTS: ${EXTRA_OPTS}"
-echo "BLOB_BASE_DIR: ${BLOB_BASE_DIR}"
 
 MACHINE_RANK=$(hostname | sed 's/[^0-9]*//g')
 
@@ -62,7 +54,7 @@ ${HOME}/.local/bin/accelerate launch --main_process_ip ${HOST_IP} --main_process
 --num_machines ${NUM_NODES} --num_processes ${NUM_PROCESSES} --machine_rank ${MACHINE_RANK} \
 --config_file configs/config.yaml \
 run_acc_lm.py \
---model_name "${BLOB_BASE_DIR}/models/${MODEL}" \
+--model_name "${MODEL}" \
 --zero_stage ${ZERO_STAGE} \
 ${GAS_OPTS} \
 ${EXTRA_OPTS}
