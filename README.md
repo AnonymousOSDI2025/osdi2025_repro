@@ -12,11 +12,13 @@ In addition, you need to install the following:
 - PyTorch 2.5.1
 - [modified version of DeepSpeed](https://github.com/AnonymousOSDI2025/DeepSpeed/tree/osdi_repro)
 
+Here are an example of installation commands:
+
 ```bash
 pip3 install torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 pip3 install transformers datasets accelerate
 
-# Install DeepSpeed
+# Install DeepSpeed and DeepCompile
 git clone -b osdi_repro https://github.com/AnonymousOSDI2025/DeepSpeed
 pip install -e DeepSpeed
 
@@ -24,9 +26,11 @@ pip install -e DeepSpeed
 git clone https://github.com/AnonymousOSDI2025/osdi2025_repro
 ```
 
+You need to set up these on all nodes.
+
 ### Setup for multiple nodes run
 
-You need to set host names in `hostfile_n4`. The file should look like the following:
+You need to set host names in `hostfile_n4` in `osdi2025_repro`. The file should look like the following:
 
 ```
 node-0 slots=8
@@ -37,7 +41,7 @@ node-3 slots=8
 
 ## Evaluation on throughput and peak memory (Fig. 6 and 7)
 
-The following script runs the throughput benchmark in Fig. 6 of the paper.
+The following script in `osdi2025_repro` runs the throughput benchmark in Fig. 6 of the paper.
 This sweeps the following conditions:
 
 - Models: meta-llama/Meta-Llama-3-70B-Instruct, mistralai/Mixtral-8x7B-v0.1
@@ -45,6 +49,7 @@ This sweeps the following conditions:
 - Sequence length: 512 1024 2048
 - Frameworks: DeepSpeed, DeepSpeed (C), FSDP, FSDP (C), DeepCompile (P), DeepCompile (S), DeepCompile (P+S)
 
+The script downloads the models from HuggingFace Model Hub. Please make sure that you have access to the models.
 
 ```bash
 export PROFILE_DIR=/path/to/profile

@@ -85,18 +85,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-LOCKFILE=/tmp/lockfile
-
 echo "NUM_NODES: ${NUM_NODES} NGPUS_PER_NODE: ${NGPUS_PER_NODE} NUM_PROCESSES: ${NUM_PROCESSES}"
 
-for i in $(seq 1 $((${NUM_NODES} - 1))); do
-    rsync -av --exclude='.git' --exclude='__pycache__' --exclude='mlruns' --exclude='__runs__' -e ssh ${CODE_DIR}/ node-${i}:${CODE_DIR}/
-    rsync -av --exclude='.git' --exclude='__pycache__' -e ssh ${DS_DIR}/ node-${i}:${DS_DIR}/
-done
-
 HOST_IP=$(hostname -i)
-
-ds_ssh "pkill -u aiscuser -f [a]ccelerate"
 
 mkdir -p logs
 
