@@ -16,7 +16,7 @@ Here are an example of installation commands:
 
 ```bash
 pip3 install torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip3 install transformers datasets accelerate
+pip3 install transformers datasets==3.1 accelerate
 
 # Install DeepSpeed and DeepCompile
 git clone -b osdi_repro https://github.com/AnonymousOSDI2025/DeepSpeed
