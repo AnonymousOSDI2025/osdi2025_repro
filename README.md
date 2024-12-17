@@ -63,6 +63,24 @@ python plot.py --result_dir results/acc_step_1 --metric throughput
 python plot.py --result_dir results/acc_step_1 --metric peak_mem
 ```
 
+Here are some example charts:
+
+Throughput
+<table>
+  <tr>
+    <td><img src="results/acc_step_1/throughput/chart_throughput_Llama-3-70B_np32_bs1.png" alt="Througput Llama-3-70B/bs=1" width="300"></td>
+    <td><img src="results/acc_step_1/throughput/chart_throughput_Mixtral-8x7B_np32_bs1.png" alt="Peak memory Llama-3-70B/bs=1" width="300"></td>
+  </tr>
+</table>
+
+Peak memory
+<table>
+  <tr>
+    <td><img src="results/acc_step_1/peak_mem/chart_peak_mem_Llama-3-70B_np32_bs2.png" alt="Througput Mixtral-8x7B/bs=1" width="300"></td>
+    <td><img src="results/acc_step_1/peak_mem/chart_peak_mem_Mixtral-8x7B_np32_bs2.png" alt="Peak memory Mixtral-8x7B/bs=1" width="300"></td>
+  </tr>
+</table>
+
 
 The following script runs the benchmark with different number of gradient accumulation steps (2, 4, 8, 16).
 The batch size and sequence length are fixed to 1 and 1024, respectively.
