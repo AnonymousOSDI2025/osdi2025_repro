@@ -139,6 +139,8 @@ def main():
 
     iter_times = []
 
+    acc_context = nullcontext() if is_deepspeed else accelerator.accumulate(model)
+
     with prof_context as prof:
         for epoch in range(args.num_epochs):
             start_iter = time.time()
@@ -147,7 +149,7 @@ def main():
                 input_ids = batch['input_ids'].to(device)
                 attention_mask = batch['attention_mask'].to(device)
 
-                with accelerator.accumulate(model):
+                with acc_context:
                     outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=input_ids, use_cache=False)
                     loss = outputs.loss
                     accelerator.backward(loss)

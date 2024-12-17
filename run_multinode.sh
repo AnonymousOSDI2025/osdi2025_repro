@@ -1,8 +1,5 @@
 #!/bin/bash
 
-DS_DIR=/scratch/amlt_code/DeepSpeed.osdi
-CODE_DIR=/scratch/amlt_code/osdi2025_repro
-
 NUM_NODES=${NUM_NODES:-$(wc -l < /job/hostfile)}
 NGPUS_PER_NODE=${NGPUS_PER_NODE:-$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)}
 NUM_PROCESSES=$((${NUM_NODES} * ${NGPUS_PER_NODE}))
