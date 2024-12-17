@@ -56,6 +56,14 @@ export PROFILE_DIR=/path/to/profile
 bash run_bench.sh
 ```
 
+The logs resulting from our experiments are stored in `logs/` directory. The summary of results is `results/acc_step_1/results.txt`. You can plot these results using the following script. The generated charts will be saved in the `results/acc_step_1/`.
+
+```bash
+python plot.py --result_dir results/acc_step_1 --metric throughput
+python plot.py --result_dir results/acc_step_1 --metric peak_mem
+```
+
+
 The following script runs the benchmark with different number of gradient accumulation steps (2, 4, 8, 16).
 The batch size and sequence length are fixed to 1 and 1024, respectively.
 
