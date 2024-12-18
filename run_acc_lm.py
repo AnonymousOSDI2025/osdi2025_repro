@@ -34,7 +34,7 @@ def get_args():
     parser.add_argument("--bench_step", type=int, default=30)
     parser.add_argument("--warmup_step", type=int, default=15)
     parser.add_argument("--zero_stage", type=int, default=3)
-    parser.add_argument("--print_interval", type=int, default=10)
+    parser.add_argument("--print_interval", type=int, default=1)
 
     return parser.parse_args()
 
@@ -139,6 +139,7 @@ def main():
 
     iter_times = []
 
+    # See https://github.com/microsoft/DeepSpeed/issues/6793
     acc_context = nullcontext() if is_deepspeed else accelerator.accumulate(model)
 
     with prof_context as prof:
@@ -159,7 +160,9 @@ def main():
 
                     global_step += 1
 
-                    if accelerator.sync_gradients:
+                    update_step = (is_deepspeed and model.is_gradient_accumulation_boundary()) \
+                        or (not is_deepspeed and accelerator.sync_gradients)
+                    if update_step:
                         if accelerator.is_main_process and global_step % (args.print_interval * args.gradient_accumulation_steps) == 0:
                             print(f"Epoch {epoch+1}, Step {global_step}, Loss: {loss.item()} sync: {accelerator.sync_gradients} time: {time.time() - start_iter} alloc_mem: {torch.cuda.memory_allocated()} peak_mem: {torch.cuda.max_memory_allocated()}")
 
