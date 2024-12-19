@@ -71,6 +71,7 @@ parser.add_argument("--metric", choices=["iteration_time", "throughput", "flops"
                     help="Metric to plot: 'iteration_time', 'flops', 'mfu', or 'peak_mem'")
 parser.add_argument("--result_dir", type=str, required=True, help="Path to the directory containing results.txt")
 parser.add_argument("--result_file", type=str, default="results.txt", help="Name of the result file")
+parser.add_argument("--acc_step_eval", action="store_true", help="Evaluate the accuracy of the model")
 args = parser.parse_args()
 
 
@@ -128,16 +129,19 @@ LABEL_DC_P = "DeepCompile (P)"
 LABEL_DC_S = "DeepCompile (S)"
 
 for (model, np, batch_size), group in grouped:
-    group = group.sort_values("seq")
-    seq_labels = group["seq"].unique()
 
-    metric_values = {LABEL_ZERO3: [0] * len(seq_labels),
-                    LABEL_ZERO3_C: [0] * len(seq_labels),
-                    LABEL_FSDP: [0] * len(seq_labels),
-                    LABEL_FSDP_C: [0] * len(seq_labels),
-                    LABEL_DC_PS: [0] * len(seq_labels),
-                    LABEL_DC_P: [0] * len(seq_labels),
-                    LABEL_DC_S: [0] * len(seq_labels)}
+    sort_group_name = "acc" if args.acc_step_eval else "seq"
+
+    group = group.sort_values(sort_group_name)
+    labels = group[sort_group_name].unique()
+
+    metric_values = {LABEL_ZERO3: [0] * len(labels),
+                    LABEL_ZERO3_C: [0] * len(labels),
+                    LABEL_FSDP: [0] * len(labels),
+                    LABEL_FSDP_C: [0] * len(labels),
+                    LABEL_DC_PS: [0] * len(labels),
+                    LABEL_DC_P: [0] * len(labels),
+                    LABEL_DC_S: [0] * len(labels)}
                     
     for _, row in group.iterrows():
         if row["ds"] and not row["compile"]:
@@ -163,13 +167,13 @@ for (model, np, batch_size), group in grouped:
             print(f"Unknown category2 : {row}")
             continue
 
-        seq_index = list(seq_labels).index(row["seq"])
+        group_index = list(labels).index(row[sort_group_name])
         if args.metric == "iteration_time":
-            metric_values[category][seq_index] = row["iteration_time"]
+            metric_values[category][group_index] = row["iteration_time"]
         elif args.metric == "peak_mem":
-            metric_values[category][seq_index] = row["peak_mem"] / (1024**3)
+            metric_values[category][group_index] = row["peak_mem"] / (1024**3)
         elif args.metric == "throughput":
-            metric_values[category][seq_index] = row["batch_size"] * row["seq"] / row["iteration_time"]
+            metric_values[category][group_index] = row["batch_size"] * row["seq"] / row["iteration_time"] * row["acc"]
         elif args.metric in ["flops", "mfu"]:
             model_params = model_info[row["model"]]
             samples_per_second, tflops = throughput_calculator(
@@ -189,11 +193,11 @@ for (model, np, batch_size), group in grouped:
                 checkpoint_activations=row["ac"]
             )
             if args.metric == "flops":
-                metric_values[category][seq_index] = tflops
+                metric_values[category][group_index] = tflops
             elif args.metric == "mfu":
-                metric_values[category][seq_index] = tflops / theoretical_peak
+                metric_values[category][group_index] = tflops / theoretical_peak
 
-    x = range(len(seq_labels))
+    x = range(len(labels))
     width = 0.1
     ylabel = {
         "iteration_time": "Iteration Time (s)",
@@ -216,9 +220,9 @@ for (model, np, batch_size), group in grouped:
     plt.bar([i + width*2 + adjust for i in x], metric_values[LABEL_DC_S], width, label=LABEL_DC_S, alpha=0.7)
     plt.bar([i + width*3 + adjust for i in x], metric_values[LABEL_DC_PS], width, label=LABEL_DC_PS, alpha=0.7)
 
-    gain_zero3 = [metric_values[LABEL_DC_PS][i] / metric_values[LABEL_ZERO3][i] for i in range(len(seq_labels))]
+    gain_zero3 = [metric_values[LABEL_DC_PS][i] / metric_values[LABEL_ZERO3][i] for i in range(len(labels))]
     print(f"model {model} np {np} batch_size {batch_size} {LABEL_ZERO3} metric_values: {metric_values[LABEL_ZERO3]} gain_zero3: {gain_zero3}")
-    gain_fsdp = [metric_values[LABEL_DC_PS][i] / metric_values[LABEL_FSDP][i] for i in range(len(seq_labels))]
+    gain_fsdp = [0 if metric_values[LABEL_FSDP][i] == 0 else metric_values[LABEL_DC_PS][i] / metric_values[LABEL_FSDP][i] for i in range(len(labels))]
     print(f"model {model} np {np} batch_size {batch_size} {LABEL_FSDP} metric_values: {metric_values[LABEL_FSDP]} gain_fsdp: {gain_fsdp}")
     print(f"model {model} np {np} batch_size {batch_size} {LABEL_DC_PS} metric_values: {metric_values[LABEL_DC_PS]}")
 
@@ -228,9 +232,12 @@ for (model, np, batch_size), group in grouped:
     model = model.replace("Mixtral-8x7B-v0.1", "Mixtral-8x7B")
 
     plt.title(f"{model}, #GPUs: {np}, Batch Size: {batch_size}", fontsize=20)
-    plt.xlabel("Sequence Length", fontsize=20)
+    if args.acc_step_eval:
+        plt.xlabel("Accumulation Steps", fontsize=20)
+    else:
+        plt.xlabel("Sequence Length", fontsize=20)
     plt.ylabel(ylabel, fontsize=20)
-    plt.xticks(x, seq_labels, fontsize=20)
+    plt.xticks(x, labels, fontsize=20)
     plt.yticks(fontsize=20)
 
     if args.metric == "peak_mem":

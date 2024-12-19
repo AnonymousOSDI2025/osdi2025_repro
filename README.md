@@ -1,22 +1,22 @@
-# osdi2025_repro
+# Code to reproduce results for "DeepCompile: A Compiler-Driven Approach to Optimizing Distributed Deep Learning Training" (submission #360 to OSDI '25)
 
 ## Setup
 
-This experiment scripts require 4 nodes that has 8 A100 GPUs each.
-We tested the scripts with Python 3.10.12 and CUDA 12.3.
+This experiment scripts require 4 nodes that has 8 A100 GPUs each. We tested the scripts with Python 3.10.12 and CUDA 12.3.
 
 ### Libraries
 
 In addition, you need to install the following:
 
 - PyTorch 2.5.1
-- [modified version of DeepSpeed](https://github.com/AnonymousOSDI2025/DeepSpeed/tree/osdi_repro)
+- [modified version of DeepSpeed](https://github.com/AnonymousOSDI2025/DeepSpeed/tree/osdi_repro) (including all the code of DeepCompile)
+- transformers, datasets (v3.2 doesn't work), accelerate
 
 Here are an example of installation commands:
 
 ```bash
 pip3 install torch==2.5.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip3 install transformers datasets==3.1 accelerate
+pip3 install transformers==4.45.0 datasets==3.1 accelerate==1.1.1
 
 # Install DeepSpeed and DeepCompile
 git clone -b osdi_repro https://github.com/AnonymousOSDI2025/DeepSpeed
@@ -66,6 +66,7 @@ python plot.py --result_dir results/acc_step_1 --metric peak_mem
 Here are some example charts:
 
 Throughput
+
 <table>
   <tr>
     <td><img src="results/acc_step_1/throughput/chart_throughput_Llama-3-70B_np32_bs1.png" alt="Througput Llama-3-70B/bs=1" width="300"></td>
@@ -74,6 +75,7 @@ Throughput
 </table>
 
 Peak memory
+
 <table>
   <tr>
     <td><img src="results/acc_step_1/peak_mem/chart_peak_mem_Llama-3-70B_np32_bs2.png" alt="Througput Mixtral-8x7B/bs=1" width="300"></td>
@@ -81,16 +83,28 @@ Peak memory
   </tr>
 </table>
 
-
 The following script runs the benchmark with different number of gradient accumulation steps (2, 4, 8, 16).
-The batch size and sequence length are fixed to 1 and 1024, respectively.
+The batch size and sequence length are fixed to 1 and 1024, respectively. (Note that FSDP doesn't work for this experiment)
 
 ```bash
+export PROFILE_DIR=/path/to/profile
 bash run_bench_acc.sh
 ```
 
-The summary of results are output to `$PROFILE_DIR/results.txt`. Please set an appropriate `PROFILE_DIR` in the script.
+You can use the same script with `--acc_step_eval` to plot the results along gradient accumulation steps.
 
+```bash
+python plot.py --result_dir results/acc_step_1_16 --acc_step_eval --metric throughput
+```
+
+Here are generated charts:
+
+<table>
+  <tr>
+    <td><img src="results/acc_step_1_16/throughput/chart_throughput_Llama-3-70B_np32_bs1.png" alt="Througput Meta-Llama-3-70B" width="300"></td>
+    <td><img src="results/acc_step_1_16/throughput/chart_throughput_Mixtral-8x7B_np32_bs1.png" alt="Througput Mixtral-8x7B" width="300"></td>
+  </tr>
+</table>
 
 ## Correctness test
 
