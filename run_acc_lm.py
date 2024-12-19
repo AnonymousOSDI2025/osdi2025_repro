@@ -6,12 +6,11 @@ from datetime import datetime
 from contextlib import nullcontext
 
 import torch
-from transformers import AutoTokenizer, AutoConfig, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoConfig, AutoModelForCausalLM, enable_full_determinism
 from datasets import load_dataset
 from accelerate import Accelerator
-from accelerate.utils import wait_for_everyone
 from torch.utils.data import DataLoader
-
+from torch.utils.data.distributed import DistributedSampler
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -41,6 +40,9 @@ def get_args():
 
 def main():
     args = get_args()
+
+    if args.deterministic:
+        enable_full_determinism(0)
 
     accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps)
     device = accelerator.device
@@ -82,7 +84,8 @@ def main():
     tokenized_dataset = dataset.map(tokenize_function, batched=True)
     tokenized_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask'])
 
-    data_loader = DataLoader(tokenized_dataset, batch_size=args.batch_size, shuffle=False)
+    sampler = DistributedSampler(tokenized_dataset, num_replicas=accelerator.num_processes, rank=accelerator.process_index)
+    data_loader = DataLoader(tokenized_dataset, batch_size=args.batch_size, sampler=sampler, num_workers=4)
 
     # Prepare optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
@@ -140,7 +143,7 @@ def main():
     iter_times = []
 
     # See https://github.com/microsoft/DeepSpeed/issues/6793
-    acc_context = nullcontext() if is_deepspeed else accelerator.accumulate(model)
+    acc_context = nullcontext if is_deepspeed else accelerator.accumulate
 
     with prof_context as prof:
         for epoch in range(args.num_epochs):
@@ -150,7 +153,7 @@ def main():
                 input_ids = batch['input_ids'].to(device)
                 attention_mask = batch['attention_mask'].to(device)
 
-                with acc_context:
+                with acc_context(model):
                     outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=input_ids, use_cache=False)
                     loss = outputs.loss
                     accelerator.backward(loss)
